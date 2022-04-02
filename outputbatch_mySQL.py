@@ -150,7 +150,7 @@ class output_mySQL(object):
         self.button_back.pack()
         self.button_OK=ctk.CTkButton(
             self.root, 
-            command = self.OK_interface, 
+            command = lambda: self.OK_interface(1), 
             text = "確定", 
             fg_color='#666666',
             width=180,height=40,
@@ -174,7 +174,7 @@ class output_mySQL(object):
     def back_interface(self):
         self.root.destroy()
     
-    def OK_interface(self):
+    def OK_interface(self,pending):
         input_year = self.input_year.get()
         input_testnum = self.input_testnum.get()
         # input_testobj = self.input_testobj.get()
@@ -186,23 +186,37 @@ class output_mySQL(object):
             input_testnum = int(input_testnum)
             # input_testobj = str(input_testobj)
             with conn.cursor() as cursor:
-                    srch_objnum = "SELECT `測試件數` FROM `測試件項目` WHERE `測試件項目`.`編號` = %d;"%(input_testname)
-                    cursor.execute(srch_objnum)
+                srch_objnum = "SELECT `測試件數` FROM `測試件項目` WHERE `測試件項目`.`編號` = %d;"%(input_testname)
+                cursor.execute(srch_objnum)
             objnum = cursor.fetchone()
             objnum = objnum[0]
             with conn.cursor() as cursor:
-                srch_db="""SELECT `測試件結果`.`年份`,  `測試件結果`.`年度次數`, `測試件結果`.`測試件項目編號`, `測試件分項目`.`測試項目_分項`, `測試件結果`.`測試件序號`,`測試件結果`.`測試件結果`, `能力試驗結果`.`能力試驗數值` 
-                        FROM `測試件結果`
-                        JOIN `測試件項目`
-                        ON `測試件結果`.`測試件項目編號` = `測試件項目`.`編號` 
-                        JOIN `測試件分項目`
-                        ON`測試件結果`.`測試件分項目編號` = `測試件分項目`.`分項編號`
-                        JOIN `能力試驗結果`
-                        ON `測試件結果`.`結果編號` = `能力試驗結果`.`測試件結果編號`
-                        WHERE `測試件結果`.`測試件分項目編號` IN  (SELECT `分項編號` FROM `測試件分項目` WHERE `編號` = %d)
-                        AND `測試件結果`.`年份` = %s 
-                        AND `測試件結果`.`年度次數` = %d ;
-                        """%(input_testname,input_year,input_testnum)
+                if pending == 1:
+                    srch_db="""SELECT `測試件結果`.`年份`,  `測試件結果`.`年度次數`, `測試件結果`.`測試件項目編號`, `測試件分項目`.`測試項目_分項`, `測試件結果`.`測試件序號`,`測試件結果`.`測試件結果`, `能力試驗結果`.`能力試驗數值` 
+                            FROM `測試件結果`
+                            JOIN `測試件項目`
+                            ON `測試件結果`.`測試件項目編號` = `測試件項目`.`編號` 
+                            JOIN `測試件分項目`
+                            ON`測試件結果`.`測試件分項目編號` = `測試件分項目`.`分項編號`
+                            JOIN `能力試驗結果`
+                            ON `測試件結果`.`結果編號` = `能力試驗結果`.`測試件結果編號`
+                            WHERE `測試件結果`.`測試件分項目編號` IN  (SELECT `分項編號` FROM `測試件分項目` WHERE `編號` = %d)
+                            AND `測試件結果`.`年份` = %s 
+                            AND `測試件結果`.`年度次數` = %d ;
+                            """%(input_testname,input_year,input_testnum)
+                elif pending != 1:
+                    srch_db="""SELECT `測試件結果`.`年份`,  `測試件結果`.`年度次數`, `測試件結果`.`測試件項目編號`, `測試件分項目`.`測試項目_分項`, `測試件結果`.`測試件序號`,`測試件結果`.`測試件結果_備機`, `能力試驗結果`.`能力試驗數值` 
+                            FROM `測試件結果`
+                            JOIN `測試件項目`
+                            ON `測試件結果`.`測試件項目編號` = `測試件項目`.`編號` 
+                            JOIN `測試件分項目`
+                            ON`測試件結果`.`測試件分項目編號` = `測試件分項目`.`分項編號`
+                            JOIN `能力試驗結果`
+                            ON `測試件結果`.`結果編號` = `能力試驗結果`.`測試件結果編號`
+                            WHERE `測試件結果`.`測試件分項目編號` IN  (SELECT `分項編號` FROM `測試件分項目` WHERE `編號` = %d)
+                            AND `測試件結果`.`年份` = %s 
+                            AND `測試件結果`.`年度次數` = %d ;
+                            """%(input_testname,input_year,input_testnum)
                 cursor.execute(srch_db)
             name = cursor.fetchall()
             cnt = cursor.rowcount
@@ -304,7 +318,7 @@ class output_mySQL(object):
                     elif "%" in aa:
                         percentage =[]
                         for z in range(3, objnum + 3):
-                            if ws['B' + str(i)].value == None:
+                            if ws['B' + str(z)].value == None:
                                 percentage.append(None)
                                 continue
                             else:
@@ -461,26 +475,29 @@ class output_mySQL(object):
                     ws['C1'].value = aa
                     tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='%s可容許範圍判定大於兩個變數，請自行判斷'%(q))
                 else:
-                    if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='是否上傳計算後可容許百分比?', ):
-                        with conn.cursor() as cursor:
-                            srch_num ="""SELECT `測試件結果`.`結果編號` 
-                                        FROM `測試件結果`
-                                        WHERE `測試件結果`.`測試件分項目編號` IN  (
-                                            SELECT `分項編號` 
-                                            FROM `測試件分項目` 
-                                            WHERE `編號` = %d 
-                                            AND `測試項目_分項` = '%s')
-                                        AND `測試件結果`.`年份` = %s 
-                                        AND `測試件結果`.`年度次數` = %d ;"""%(input_testname,q,input_year,input_testnum)
-                            cursor.execute(srch_num)
-                        srch_number = [srch_num_1[0] for srch_num_1 in cursor.fetchall()]
-                        # print(srch_number)
-                        for l in range(0,len(srch_number)):
+                    if pending == 1:
+                        if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='是否上傳計算後可容許百分比?', ):
                             with conn.cursor() as cursor:
-                                input_percent="""UPDATE `能力試驗結果` SET`差異百分比`=%.5f WHERE `測試件結果編號`='%s';"""%(percentage[l],srch_number[l])
-                                # print(input_percent)
-                                cursor.execute(input_percent)
-                            conn.commit()
+                                srch_num ="""SELECT `測試件結果`.`結果編號` 
+                                            FROM `測試件結果`
+                                            WHERE `測試件結果`.`測試件分項目編號` IN  (
+                                                SELECT `分項編號` 
+                                                FROM `測試件分項目` 
+                                                WHERE `編號` = %d 
+                                                AND `測試項目_分項` = '%s')
+                                            AND `測試件結果`.`年份` = %s 
+                                            AND `測試件結果`.`年度次數` = %d ;"""%(input_testname,q,input_year,input_testnum)
+                                cursor.execute(srch_num)
+                            srch_number = [srch_num_1[0] for srch_num_1 in cursor.fetchall()]
+                            # print(srch_number)
+                            for l in range(0,len(srch_number)):
+                                with conn.cursor() as cursor:
+                                    input_percent="""UPDATE `能力試驗結果` SET`差異百分比`=%.5f WHERE `測試件結果編號`='%s';"""%(percentage[l],srch_number[l])
+                                    # print(input_percent)
+                                    cursor.execute(input_percent)
+                                conn.commit()
+                    elif pending != 1:
+                        tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='備機不須上傳可容許範圍!')
                 ###擷取近五次資料
                 ##所有能力試驗結果，每年測試次數皆為2或3
                 with conn.cursor() as cursor:
@@ -608,14 +625,20 @@ class output_mySQL(object):
                     s6.graphicalProperties.solidFill = "FF9224" # Marker filling
                     s6.graphicalProperties.line.solidFill = "FF9224"
                 ws.add_chart(chart1, "A32")
-
-                wb.save("%s年第%d次%s.xlsx"%(input_year,input_testnum,self.input_testname.get()))   #xlsx檔案存檔
-                filepath=".//%s年第%d次%s.xlsx"%(input_year,input_testnum,self.input_testname.get())
+                if pending == 1:
+                    hhh=""
+                elif pending!= 1:
+                    hhh="(備機)"
+                wb.save("%s年第%d次%s%s.xlsx"%(input_year,input_testnum,self.input_testname.get(),hhh))   #xlsx檔案存檔
+                filepath=".//%s年第%d次%s%s.xlsx"%(input_year,input_testnum,self.input_testname.get(),hhh)
         if os.path.isfile(filepath):
             tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='檔案新增成功!')
-            if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='是否開啟檔案?'):
-                command = "start " + filepath
-                subprocess.run(command, shell=True)
+            if pending == 1:
+                if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='是否新增備機資料?'):
+                    self.OK_interface(2)
+                if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='是否開啟檔案?'):
+                    command = "start " + filepath
+                    subprocess.run(command, shell=True)
             else:
                 self.clear_data()
                 return
@@ -639,7 +662,7 @@ class output_mySQL(object):
         self.button_OK.place(relx=0.65,rely=0.8,anchor=tk.CENTER)
         self.cc.place(relx=1, rely=1,anchor=tk.SE)
     def return_click(self, event):  #按Enter鍵自動連結登入
-        self.OK_interface()
+        self.OK_interface(1)
 def main():  
     L = output_mySQL()
     L.gui_arrang()
