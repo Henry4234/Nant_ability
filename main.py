@@ -74,7 +74,7 @@ class Login:    #建立登入介面
         verifyResult = verifyAccount.verifyAccountData(account,password)  
         if verifyResult=='master':  
             tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='進入管理介面')
-            self.loginuser()
+            self.loginuseradmin()
         elif verifyResult=='user':  
             tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='進入使用者介面')
             self.loginuser()   
@@ -89,6 +89,10 @@ class Login:    #建立登入介面
     def loginuser(self):
         self.root.destroy()
         command = "python basedesk.py " + account
+        subprocess.run(command, shell=True)
+    def loginuseradmin(self):
+        self.root.destroy()
+        command = "python basedesk_admin.py " + account
         subprocess.run(command, shell=True)
 def main():  
     # 初始化物件  
