@@ -4,8 +4,7 @@ from logging import root
 from pdb import line_prefix
 from sysconfig import get_paths
 import tkinter as tk
-from tkinter import messagebox
-from tkinter import ttk, StringVar
+from tkinter import messagebox,ttk, StringVar
 import pandas as pd
 from pandas import value_counts
 from ttkbootstrap import Style
@@ -534,6 +533,7 @@ class output_mySQL(object):
             else:
                 tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='歷年能力試驗不足五年!')
                 n = 0   #設定pd變數
+                print(ans[4][0])
                 for col in range(2,len(title) + 1):  #不確定幾年
                     for row in range(25,objnum+25): #利用測試件數建立迴圈
                         char = get_column_letter(col)

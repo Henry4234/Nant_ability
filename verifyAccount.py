@@ -29,7 +29,7 @@ def verifyAccountData(account,password):
     # with open('pw.pickle','rb') as usr_file:
     #         usrs_info=pickle.load(usr_file)
     if account in a:
-        if account == "admin"and password == a[account]:
+        if account == "admin" or account == "N69011" or account == "N69867" or account == "N69247" and password == a[account]:
             return "master"
         elif password == a[account]:
             return "user"
