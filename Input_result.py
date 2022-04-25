@@ -12,21 +12,21 @@ import pymysql
 global account
 account = sys.argv[1]
 #建立與mySQL連線資料
-db_settings = { 
-    "host": "192.168.0.120",
-    "port": 3307,
-    "user": "root",
-    "db": "nantou db",
-    "charset": "utf8"
-    }
 # db_settings = { 
-#     "host": "127.0.0.1",
-#     "port": 3306,
+#     "host": "192.168.0.120",
+#     "port": 3307,
 #     "user": "root",
-#     "password": "ROOT",
 #     "db": "nantou db",
 #     "charset": "utf8"
 #     }
+db_settings = { 
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "root",
+    "password": "ROOT",
+    "db": "nantou db",
+    "charset": "utf8"
+    }
 conn = pymysql.connect(**db_settings)
 
 #與mySQL建立連線，取出測試件項目工作表中的測試件名稱以及編號
@@ -236,8 +236,14 @@ class load_mySQL(object):
                             AND `測試件結果`.`年度次數` = %d ;"""%(testname_num,input_testobj,input_year,input_testnum_1)
                 cursor.execute(srch_test)
             test = cursor.fetchone()
+            test_count = cursor.rowcount
             if test ==None:
                 tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='找無此項能力試驗結果欸....')
+                self.clear_data()
+                return
+            elif test_count >= 2:
+                tk.messagebox.showerror(title='南投署立醫院檢驗科', message='能力試驗重複上傳，請聯絡資訊醫檢師!')
+                self.clear_data()
             else:
                 test = test[0]
                 with conn.cursor() as cursor:
@@ -245,12 +251,13 @@ class load_mySQL(object):
                     cursor.execute(val)
                 print(val)
                 conn.commit()
-                conn.close()
+                
                 # print(input_year,input_testname,input_testnum,input_testobj,input_testval)
                 tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='新增成功!')
                 if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='要繼續輸入數值?', ):
                     self.clear_data()
                 else:
+                    conn.close()
                     self.root.destroy()
                 
     def clear_data(self):

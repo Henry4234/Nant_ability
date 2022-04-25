@@ -20,21 +20,21 @@ from openpyxl.chart import LineChart,Reference
 from openpyxl.chart.text import RichText
 from openpyxl.drawing.text import Paragraph,CharacterProperties,ParagraphProperties,Font
 #建立與mySQL連線資料
-db_settings = { 
-    "host": "192.168.0.120",
-    "port": 3307,
-    "user": "root",
-    "db": "nantou db",
-    "charset": "utf8"
-    }
 # db_settings = { 
-#     "host": "127.0.0.1",
-#     "port": 3306,
+#     "host": "192.168.0.120",
+#     "port": 3307,
 #     "user": "root",
-#     "password": "ROOT",
 #     "db": "nantou db",
 #     "charset": "utf8"
 #     }
+db_settings = { 
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "root",
+    "password": "ROOT",
+    "db": "nantou db",
+    "charset": "utf8"
+    }
 conn = pymysql.connect(**db_settings)
 
 #與mySQL建立連線，取出測試件項目工作表中的測試件名稱以及編號
@@ -174,7 +174,7 @@ class output_mySQL(object):
     def back_interface(self):
         self.root.destroy()
     
-    def OK_interface(self,x):
+    def OK_interface(self,x):   #x變數判定輸出主機或備機
         input_year = self.input_year.get()  #輸入年份擷取
         input_testnum = self.input_testnum.get() #今年第幾次擷取   
         input_testobj = self.input_testobj.get() #輸入分項目擷取str

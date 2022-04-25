@@ -12,21 +12,21 @@ import pymysql
 global account
 account = sys.argv[1]
 #建立與mySQL連線資料
-db_settings = { 
-    "host": "192.168.0.120",
-    "port": 3307,
-    "user": "root",
-    "db": "nantou db",
-    "charset": "utf8"
-    }
 # db_settings = { 
-#     "host": "127.0.0.1",
-#     "port": 3306,
+#     "host": "192.168.0.120",
+#     "port": 3307,
 #     "user": "root",
-#     "password": "ROOT",
 #     "db": "nantou db",
 #     "charset": "utf8"
 #     }
+db_settings = { 
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "root",
+    "password": "ROOT",
+    "db": "nantou db",
+    "charset": "utf8"
+    }
 conn = pymysql.connect(**db_settings)
 
 #與mySQL建立連線，取出測試件項目工作表中的測試件名稱以及編號
@@ -193,6 +193,20 @@ class load_mySQL(object):
         input_testval = self.input_testval.get()
         if input_year == "" or input_testname == "" or input_testnum_1 =="" or input_testnum_2 =="" or input_testobj =="" or input_testval =="":
             tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='輸入不完全!請重新輸入!')
+        with conn.cursor() as cursor:
+            verify = """SELECT `測試件結果`.`結果編號` FROM `測試件結果` 
+            WHERE `測試件結果`.`年份`=%s
+            AND `測試件結果`.`年度次數`=%d
+            AND `測試件結果`.`測試件項目編號`= %d
+            AND `測試件結果`.`測試件分項目編號`= %d
+            AND `測試件結果`.`測試件序號`= %d;"""%(input_year,input_testnum_1,testname_num,testobj_num,input_testnum_2)
+            cursor.execute(verify)
+        Verify = cursor.rowcount
+        print(Verify)
+        if Verify >= 1:
+            tk.messagebox.showerror(title='南投署立醫院檢驗科', message='已有上傳過相同數值，請勿重複上傳!')
+            self.clear_data()
+            return
         else:
             input_testnum_1 = int(input_testnum_1)
             input_testnum_2 = int(input_testnum_2)
@@ -209,12 +223,12 @@ class load_mySQL(object):
                 val = "INSERT INTO `測試件結果`(`年度次數`, `測試件項目編號`, `測試件分項目編號`, `年份`, `測試件序號`, `測試件結果`,`新增人員`) VALUES (%d, %d, %d, %s, %d, %.5f,'%s');" %(input_testnum_1,testname_num,testobj_num,input_year,input_testnum_2,input_testval,account)
                 cursor.execute(val)
             conn.commit()
-            conn.close()
             # print(input_year,input_testname,input_testnum,input_testobj,input_testval)
             tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='新增成功!')
             if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='要繼續輸入數值?', ):
                 self.clear_data()
             else:
+                conn.close()
                 self.root.destroy()
                 
     def clear_data(self):
