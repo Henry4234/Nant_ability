@@ -12,13 +12,6 @@ import pymysql
 global account
 account = sys.argv[1]
 #建立與mySQL連線資料
-# db_settings = { 
-#     "host": "192.168.0.120",
-#     "port": 3307,
-#     "user": "root",
-#     "db": "nantou db",
-#     "charset": "utf8"
-#     }
 db_settings = { 
     "host": "127.0.0.1",
     "port": 3306,
@@ -27,7 +20,13 @@ db_settings = {
     "db": "nantou db",
     "charset": "utf8"
     }
-conn = pymysql.connect(**db_settings)
+try:
+    conn = pymysql.connect(**db_settings)
+except pymysql.err.OperationalError:
+    db_settings.update({"host": "192.168.0.120","port": 3307})
+    del db_settings["password"]
+finally:
+    conn = pymysql.connect(**db_settings)
 
 #與mySQL建立連線，取出測試件項目工作表中的測試件名稱以及編號
 with conn.cursor() as cursor:
@@ -193,40 +192,54 @@ class load_mySQL(object):
         input_testval = self.input_testval.get()
         if input_year == "" or input_testname == "" or input_testnum_1 =="" or input_testnum_2 =="" or input_testobj =="" or input_testval =="":
             tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='輸入不完全!請重新輸入!')
-        else:
-            input_testnum_1 = int(input_testnum_1)
-            input_testnum_2 = int(input_testnum_2)
+            return None
+        input_testnum_1 = int(input_testnum_1)
+        input_testnum_2 = int(input_testnum_2)
+        try:    #檢查是否有不等值(">","<")
             input_testval = float(input_testval)
+        except ValueError:  #如果有的話，取字元第一位當作不等值判讀
+            nonequal = input_testval[0]
+            input_testval = float(input_testval[1:])    #去除第一位後為值
+            # print(nonequal)
+        else:
+            nonequal = "="  #如果沒有">","<"，不等值判讀為"="
+        with conn.cursor() as cursor:   #測試件項目編號轉換("CAP_CHM" -> 6)
+            cursor.execute("SELECT `測試件項目`.`編號`, `測試件項目`.`測試件名稱` FROM `測試件項目` WHERE `測試件項目`.`測試件名稱`= %s;",input_testname)
+        name = cursor.fetchone()
+        testname_num = int(name[0])
+        with conn.cursor() as cursor:   #測試件分項目編號轉換("TG" -> 18)
+            cursor.execute("SELECT `測試件分項目`.`分項編號`, `測試件分項目`.`測試項目_分項` FROM `測試件分項目` WHERE `測試件分項目`.`測試項目_分項`= %s;",input_testobj)
+        name = cursor.fetchone()
+        testobj_num = int(name[0])
+        
+        with conn.cursor() as cursor:   #找看看是否已經有上傳主機數值
+            srch = "SELECT `測試件結果`.`結果編號` FROM `測試件結果` WHERE `年份`='%s' AND `年度次數`= %d AND `測試件項目編號`= %d AND `測試件分項目編號`= %d AND `測試件序號` = %d;"%(input_year,input_testnum_1,testname_num,testobj_num,input_testnum_2)
+            cursor.execute(srch)
+        srchrslt = cursor.rowcount
+        if srchrslt == 0:   #如果未上傳或者只有備機操作
             with conn.cursor() as cursor:
-                cursor.execute("SELECT `測試件項目`.`編號`, `測試件項目`.`測試件名稱` FROM `測試件項目` WHERE `測試件項目`.`測試件名稱`= %s;",input_testname)
-            name = cursor.fetchone()
-            testname_num = int(name[0])
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT `測試件分項目`.`分項編號`, `測試件分項目`.`測試項目_分項` FROM `測試件分項目` WHERE `測試件分項目`.`測試項目_分項`= %s;",input_testobj)
-            name = cursor.fetchone()
-            testobj_num = int(name[0])
-            
-            with conn.cursor() as cursor:
-                srch = "SELECT `測試件結果`.`結果編號` FROM `測試件結果` WHERE `年份`='%s' AND `年度次數`= %d AND `測試件項目編號`= %d AND `測試件分項目編號`= %d AND `測試件序號` = %d;"%(input_year,input_testnum_1,testname_num,testobj_num,input_testnum_2)
-                cursor.execute(srch)
-            srchrslt = cursor.rowcount
-            if srchrslt == 0:
-                with conn.cursor() as cursor:
+                if nonequal == "=":
                     val = "INSERT INTO `測試件結果`(`年度次數`, `測試件項目編號`, `測試件分項目編號`, `年份`, `測試件序號`, `測試件結果_備機`,`新增人員`) VALUES (%d, %d, %d, %s, %d, %.5f,'%s');" %(input_testnum_1,testname_num,testobj_num,input_year,input_testnum_2,input_testval,account)
-                    cursor.execute(val)
-                conn.commit()
-            else:
-                with conn.cursor() as cursor:
+                else:
+                    val = "INSERT INTO `測試件結果`(`年度次數`, `測試件項目編號`, `測試件分項目編號`, `年份`, `測試件序號`, `測試件結果_備機`,`不等判讀`,`新增人員`) VALUES (%d, %d, %d, %s, %d, %.5f,'%s','%s');" %(input_testnum_1,testname_num,testobj_num,input_year,input_testnum_2,input_testval,nonequal,account)
+                cursor.execute(val)
+            conn.commit()
+        else:   #如果主機已操作
+            with conn.cursor() as cursor:
+                if nonequal == "=":
                     val = "UPDATE `測試件結果` SET `測試件結果_備機` = %.5f WHERE `年度次數`=%d AND `測試件項目編號` = %d AND `測試件分項目編號` = %d AND `年份` = %s AND `測試件序號` = %d;" %(input_testval,input_testnum_1,testname_num,testobj_num,input_year,input_testnum_2)
-                    cursor.execute(val)
-                conn.commit()
-            # print(input_year,input_testname,input_testnum,input_testobj,input_testval)
-            tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='新增成功!')
-            if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='要繼續輸入數值?', ):
-                self.clear_data()
-            else:
-                conn.close()
-                self.root.destroy()
+                else:
+                    val = "UPDATE `測試件結果` SET `測試件結果_備機` = %.5f,`不等判讀_備機`='%s' WHERE `年度次數`=%d AND `測試件項目編號` = %d AND `測試件分項目編號` = %d AND `年份` = %s AND `測試件序號` = %d;" %(input_testval,nonequal,input_testnum_1,testname_num,testobj_num,input_year,input_testnum_2)
+                print(val)
+                cursor.execute(val)
+            conn.commit()
+        # print(input_year,input_testname,input_testnum,input_testobj,input_testval)
+        tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='新增成功!')
+        if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='要繼續輸入數值?', ):
+            self.clear_data()
+        else:
+            conn.close()
+            self.root.destroy()
                 
     def clear_data(self):
         # self.input_year.delete(0,"end")

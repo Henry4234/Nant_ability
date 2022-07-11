@@ -17,21 +17,20 @@ global account
 account = sys.argv[1]
 #建立與mySQL連線資料
 db_settings = { 
-    "host": "192.168.0.120",
-    "port": 3307,
+    "host": "127.0.0.1",
+    "port": 3306,
     "user": "root",
+    "password": "ROOT",
     "db": "nantou db",
     "charset": "utf8"
     }
-# db_settings = { 
-#     "host": "127.0.0.1",
-#     "port": 3306,
-#     "user": "root",
-#     "password": "ROOT",
-#     "db": "nantou db",
-#     "charset": "utf8"
-#     }
-conn = pymysql.connect(**db_settings)
+try:
+    conn = pymysql.connect(**db_settings)
+except pymysql.err.OperationalError:
+    db_settings.update({"host": "192.168.0.120","port": 3307})
+    del db_settings["password"]
+finally:
+    conn = pymysql.connect(**db_settings)
 
 #與mySQL建立連線，取出測試件項目工作表中的測試件名稱以及編號
 with conn.cursor() as cursor:
@@ -182,17 +181,17 @@ class loadbatch_mySQL(object):
         try:
             excel_filename = r"{}".format(file_path)
             if excel_filename[-4:] == ".csv":
-                df_raw = pd.read_csv(excel_filename)
+                df_raw = pd.read_csv(excel_filename,skiprows=2)
             else:
-                df_raw = pd.read_excel(excel_filename)
+                df_raw = pd.read_excel(excel_filename,skiprows=2)
         except ValueError:
             tk.messagebox.showerror('南投署立醫院檢驗科', message='資料格式不符，請重新選擇檔案')
             return None
         except FileNotFoundError:
             tk.messagebox.showerror("Information", message='未選擇檔案，請選擇檔案後再重新驗證!')
             return None
-        titlecompair = df.columns
-        title = ['年份', '年度次數', '測試件項目', '測試件分項目', '測試件序號','能力試驗數值','能力試驗標準差']
+        titlecompair = df_raw.columns
+        title = ['年份', '年度次數', '測試件項目', '測試件分項目', '測試件序號','能力試驗結果','能力試驗標準差']
         for j in range(0,len(titlecompair)):
             if titlecompair[j] == title[j]:
                 continue
@@ -212,10 +211,14 @@ class loadbatch_mySQL(object):
             filt = (df["年份"]== str(df_raw.at[i,"年份"])) & (df["年度次數"]== int(df_raw.at[i,"年度次數"])) & (df["測試件名稱"]== str(df_raw.at[i,"測試件項目"])) & (df["測試項目_分項"] == str(df_raw.at[i,"測試件分項目"])) & (df["測試件序號"] == int(df_raw.at[i,"測試件序號"]))
             aa = df.loc[filt,["結果編號"]]
             # print(aa)
-            aa.index = pd.Series([0])
-            bb = aa.at[0,"結果編號"]
-            # print(bb)
-            resultnum.append(bb)
+            if aa.empty:
+                tk.messagebox.showerror(title='南投署立醫院檢驗科', message="能力試驗資料尚未上傳!!")
+                return None
+            else:
+                aa.index = pd.Series([0])
+                bb = aa.at[0,"結果編號"]
+                # print(bb)
+                resultnum.append(bb)
         upload_df = df_raw.drop(["年份","年度次數","測試件項目","測試件分項目","測試件序號"],axis=1)
         upload_df.insert(0,column="結果編號", value = resultnum)
         uploadtestname = df_raw.at[0,"測試件項目"]

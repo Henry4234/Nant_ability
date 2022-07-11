@@ -180,6 +180,16 @@ class basedesk:
             text_color="#00F5FF"
             )
         self.button_6.pack()
+        self.button_7=ctk.CTkButton(
+            self.labelframe_4, 
+            command = self.dashboard, 
+            text = "查詢上傳結果", 
+            fg_color='#666666',
+            width=180,height=40,
+            text_font='微軟正黑體',
+            text_color="#00F5FF"
+            )
+        self.button_7.pack()
         self.button_changepw=ctk.CTkButton(
             self.root, 
             command = self.changepw, 
@@ -260,6 +270,8 @@ class basedesk:
         subprocess.run("python output_mySQL.py", shell=True)
     def output_batch(self):
         subprocess.run("python outputbatch_mySQL.py", shell=True)
+    def dashboard(self):
+    	subprocess.run("python dashboard.py", shell=True)
     def logout_interface(self):
         if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='確定要登出嗎?', ):
             tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='已登出!')

@@ -12,13 +12,6 @@ import pymysql
 global account
 account = sys.argv[1]
 #建立與mySQL連線資料
-# db_settings = { 
-#     "host": "192.168.0.120",
-#     "port": 3307,
-#     "user": "root",
-#     "db": "nantou db",
-#     "charset": "utf8"
-#     }
 db_settings = { 
     "host": "127.0.0.1",
     "port": 3306,
@@ -27,7 +20,13 @@ db_settings = {
     "db": "nantou db",
     "charset": "utf8"
     }
-conn = pymysql.connect(**db_settings)
+try:
+    conn = pymysql.connect(**db_settings)
+except pymysql.err.OperationalError:
+    db_settings.update({"host": "192.168.0.120","port": 3307})
+    del db_settings["password"]
+finally:
+    conn = pymysql.connect(**db_settings)
 
 #與mySQL建立連線，取出測試件項目工作表中的測試件名稱以及編號
 with conn.cursor() as cursor:
@@ -208,57 +207,65 @@ class load_mySQL(object):
         input_testsd = self.input_testsd.get()
         if input_year == "" or input_testname == "" or input_testnum_1 =="" or input_testnum_2 =="" or input_testobj =="" or input_testval =="" :
             tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='輸入不完全!請重新輸入!')
-        else:
-            input_testnum_1 = int(input_testnum_1)
-            input_testnum_2 = int(input_testnum_2)
+            return None
+        input_testnum_1 = int(input_testnum_1)
+        input_testnum_2 = int(input_testnum_2)
+        try:
             input_testval = float(input_testval)
-            if input_testsd != None:
-                input_testsd = float(input_testsd)
-            else:
-                input_testsd = None
+        except ValueError:  #如果有的話，取字元第一位當作不等值判讀
+            tk.messagebox.showinfo(title='南投署立醫院檢驗科',message='平均不太可能有大於小於?如果有請聯絡資訊醫檢師!')
+            nonequal = input_testval[0]
+            input_testval = float(input_testval[1:])    #去除第一位後為值
+        else:
+            nonequal = "="  #如果沒有">","<"，不等值判讀為"="
+        if input_testsd != None:
+            input_testsd = float(input_testsd)
+        else:
+            input_testsd = None
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT `測試件項目`.`編號`, `測試件項目`.`測試件名稱` FROM `測試件項目` WHERE `測試件項目`.`測試件名稱`= %s;",input_testname)
+        name = cursor.fetchone()
+        testname_num = int(name[0])
+        # with conn.cursor() as cursor:
+        #     cursor.execute("SELECT `測試件分項目`.`分項編號`, `測試件分項目`.`測試項目_分項` FROM `測試件分項目` WHERE `測試件分項目`.`測試項目_分項`= %s;",input_testobj)
+        # name = cursor.fetchone()
+        # testobj_num = int(name[0])
+        with conn.cursor() as cursor:
+            srch_test = """SELECT `測試件結果`.`結果編號`
+                        FROM `測試件結果`
+                        JOIN `測試件項目`
+                        ON `測試件結果`.`測試件項目編號` = `測試件項目`.`編號` 
+                        JOIN `測試件分項目`
+                        ON`測試件結果`.`測試件分項目編號` = `測試件分項目`.`分項編號`
+                        WHERE `測試件結果`.`測試件分項目編號` IN  (SELECT `分項編號` FROM `測試件分項目` WHERE `編號` = %d AND `測試項目_分項` = '%s')
+                        AND `測試件結果`.`年份` = %s 
+                        AND `測試件結果`.`年度次數` = %d 
+                        AND `測試件結果`.`測試件序號` = %d;"""%(testname_num,input_testobj,input_year,input_testnum_1,input_testnum_2)
+            cursor.execute(srch_test)
+        test = cursor.fetchone()
+        test_count = cursor.rowcount
+        if test ==None:
+            tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='找無此項能力試驗結果欸....')
+            self.clear_data()
+            return
+        elif test_count >= 2:
+            tk.messagebox.showerror(title='南投署立醫院檢驗科', message='能力試驗重複上傳，請聯絡資訊醫檢師!')
+            self.clear_data()
+        else:
+            test = test[0]
             with conn.cursor() as cursor:
-                cursor.execute("SELECT `測試件項目`.`編號`, `測試件項目`.`測試件名稱` FROM `測試件項目` WHERE `測試件項目`.`測試件名稱`= %s;",input_testname)
-            name = cursor.fetchone()
-            testname_num = int(name[0])
-            # with conn.cursor() as cursor:
-            #     cursor.execute("SELECT `測試件分項目`.`分項編號`, `測試件分項目`.`測試項目_分項` FROM `測試件分項目` WHERE `測試件分項目`.`測試項目_分項`= %s;",input_testobj)
-            # name = cursor.fetchone()
-            # testobj_num = int(name[0])
-            with conn.cursor() as cursor:
-                srch_test = """SELECT `測試件結果`.`結果編號`
-                            FROM `測試件結果`
-                            JOIN `測試件項目`
-                            ON `測試件結果`.`測試件項目編號` = `測試件項目`.`編號` 
-                            JOIN `測試件分項目`
-                            ON`測試件結果`.`測試件分項目編號` = `測試件分項目`.`分項編號`
-                            WHERE `測試件結果`.`測試件分項目編號` IN  (SELECT `分項編號` FROM `測試件分項目` WHERE `編號` = %d AND `測試項目_分項` = '%s')
-                            AND `測試件結果`.`年份` = %s 
-                            AND `測試件結果`.`年度次數` = %d ;"""%(testname_num,input_testobj,input_year,input_testnum_1)
-                cursor.execute(srch_test)
-            test = cursor.fetchone()
-            test_count = cursor.rowcount
-            if test ==None:
-                tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='找無此項能力試驗結果欸....')
-                self.clear_data()
-                return
-            elif test_count >= 2:
-                tk.messagebox.showerror(title='南投署立醫院檢驗科', message='能力試驗重複上傳，請聯絡資訊醫檢師!')
+                val = "INSERT INTO `能力試驗結果` (`測試件結果編號`, `能力試驗數值`, `能力試驗標準差`) VALUES ('%s', %.5f, %.5f);" %(test,input_testval,input_testsd)
+                cursor.execute(val)
+            # print(val)
+            conn.commit()
+            
+            # print(input_year,input_testname,input_testnum,input_testobj,input_testval)
+            tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='新增成功!')
+            if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='要繼續輸入數值?', ):
                 self.clear_data()
             else:
-                test = test[0]
-                with conn.cursor() as cursor:
-                    val = "INSERT INTO `能力試驗結果` (`測試件結果編號`, `能力試驗數值`, `能力試驗標準差`) VALUES ('%s', %.5f, %.5f);" %(test,input_testval,input_testsd)
-                    cursor.execute(val)
-                print(val)
-                conn.commit()
-                
-                # print(input_year,input_testname,input_testnum,input_testobj,input_testval)
-                tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='新增成功!')
-                if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='要繼續輸入數值?', ):
-                    self.clear_data()
-                else:
-                    conn.close()
-                    self.root.destroy()
+                conn.close()
+                self.root.destroy()
                 
     def clear_data(self):
         # self.input_year.delete(0,"end")

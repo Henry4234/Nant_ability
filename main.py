@@ -1,5 +1,6 @@
 #authorised by Henry Tsai
-import pickle
+from logging import exception
+import os
 import subprocess
 import tkinter as tk
 from tkinter import messagebox

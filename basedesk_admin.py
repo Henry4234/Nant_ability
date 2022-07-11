@@ -150,7 +150,7 @@ class basedesk:
             text_font='微軟正黑體',
             text_color="#00F5FF"
             )
-        self.button_3.pack(padx=10, pady=25)
+        self.button_3.pack(padx=10, pady=15)
         self.button_3s=ctk.CTkButton(
             self.labelframe_3,
             command = self.output_batch, 
@@ -160,7 +160,7 @@ class basedesk:
             text_font='微軟正黑體',
             text_color="#00F5FF"
             )
-        self.button_3s.pack(padx=10, pady=25)
+        self.button_3s.pack(padx=10, pady=15)
         self.button_4=ctk.CTkButton(
             self.labelframe_4, 
             command = "", 
@@ -170,7 +170,7 @@ class basedesk:
             text_font='微軟正黑體',
             text_color="#00F5FF"
             )
-        self.button_4.pack(padx=10, pady=25)
+        self.button_4.pack(padx=10, pady=10)
         self.button_5=ctk.CTkButton(
             self.root, 
             command = self.logout_interface, 
@@ -190,6 +190,26 @@ class basedesk:
             text_color="#00F5FF"
             )
         self.button_6.pack()
+        self.button_7=ctk.CTkButton(
+            self.labelframe_4, 
+            command = self.dashboard, 
+            text = "查詢上傳結果", 
+            fg_color='#666666',
+            width=180,height=40,
+            text_font='微軟正黑體',
+            text_color="#00F5FF"
+            )
+        self.button_7.pack(padx=10, pady=10)
+        self.button_8=ctk.CTkButton(
+            self.labelframe_4, 
+            command = self.modify, 
+            text = "結果修改", 
+            fg_color='#666666',
+            width=180,height=40,
+            text_font='微軟正黑體',
+            text_color="#00F5FF"
+            )
+        self.button_8.pack(padx=10, pady=10)
         self.button_changepw=ctk.CTkButton(
             self.root, 
             command = self.changepw, 
@@ -220,8 +240,8 @@ class basedesk:
         self.cc.place(relx=1, rely=1,anchor=tk.SE) 
         self.labelframe_1.place(relx=0.17,rely=0.48, anchor=tk.CENTER)
         self.labelframe_2.place(relx=0.52,rely=0.42, anchor=tk.CENTER)
-        self.labelframe_3.place(relx=0.85,rely=0.4, anchor=tk.CENTER)
-        self.labelframe_4.place(relx=0.83,rely=0.7, anchor=tk.CENTER)
+        self.labelframe_3.place(relx=0.85,rely=0.36, anchor=tk.CENTER)
+        self.labelframe_4.place(relx=0.83,rely=0.67, anchor=tk.CENTER)
     def changepw(self):
         label_1 = tk.simpledialog.askstring(
             title = '南投署立醫院檢驗科',
@@ -247,7 +267,6 @@ class basedesk:
                 label_1 = tk.simpledialog.askstring(
                 title = '南投署立醫院檢驗科',
                 prompt='請輸入新密碼：')
-        
     def keyin_interface(self):
         command = "python Input_mySQL.py " + account
         subprocess.run(command, shell=True)
@@ -272,6 +291,10 @@ class basedesk:
         subprocess.run("python outputbatch_mySQL.py", shell=True)
     def keyinclia(self):
         subprocess.run("python keyin_clia.py", shell=True)
+    def dashboard(self):
+    	subprocess.run("python dashboard.py", shell=True)
+    def modify(self):
+    	subprocess.run("python Modify.py", shell=True)
     def logout_interface(self):
         if tk.messagebox.askyesno(title='南投署立醫院檢驗科', message='確定要登出嗎?', ):
             tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='已登出!')

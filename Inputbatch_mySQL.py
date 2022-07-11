@@ -18,21 +18,20 @@ global account
 account = sys.argv[1]
 #建立與mySQL連線資料
 db_settings = { 
-    "host": "192.168.0.120",
-    "port": 3307,
+    "host": "127.0.0.1",
+    "port": 3306,
     "user": "root",
+    "password": "ROOT",
     "db": "nantou db",
     "charset": "utf8"
     }
-# db_settings = { 
-#     "host": "127.0.0.1",
-#     "port": 3306,
-#     "user": "root",
-#     "password": "ROOT",
-#     "db": "nantou db",
-#     "charset": "utf8"
-#     }
-conn = pymysql.connect(**db_settings)
+try:
+    conn = pymysql.connect(**db_settings)
+except pymysql.err.OperationalError:
+    db_settings.update({"host": "192.168.0.120","port": 3307})
+    del db_settings["password"]
+finally:
+    conn = pymysql.connect(**db_settings)
 
 #與mySQL建立連線，取出測試件項目工作表中的測試件名稱以及編號
 with conn.cursor() as cursor:
@@ -185,9 +184,9 @@ class loadbatch_mySQL(object):
         try:
             excel_filename = r"{}".format(file_path)
             if excel_filename[-4:] == ".csv":
-                df = pd.read_csv(excel_filename)
+                df = pd.read_csv(excel_filename,skiprows=2)
             else:
-                df = pd.read_excel(excel_filename)
+                df = pd.read_excel(excel_filename,skiprows=2)
         except ValueError:
             tk.messagebox.showerror('南投署立醫院檢驗科', message='資料格式不符，請重新選擇檔案')
             return None
@@ -230,6 +229,26 @@ class loadbatch_mySQL(object):
             else:
                 tk.messagebox.showerror(title='南投署立醫院檢驗科', message="測試件分項目輸入錯誤，請檢查檔案後重新輸入!!")
                 return None
+        ##與mySQL連線驗證是否有重複資料
+        for q in range(0,len(upload_df)):
+            with conn.cursor() as cursor:
+                sqlverify = """SELECT `測試件結果`.`結果編號` 
+                            FROM `測試件結果`
+                            JOIN `測試件項目`
+                            ON `測試件結果`.`測試件項目編號` = `測試件項目`.`編號` 
+                            JOIN `測試件分項目`
+                            ON`測試件結果`.`測試件分項目編號` = `測試件分項目`.`分項編號`
+                            WHERE `測試件結果`.`測試件分項目編號`IN  (SELECT `分項編號` FROM `測試件分項目` WHERE `編號` = %d AND `測試項目_分項` = '%s')
+                            AND `年份` = %d 
+                            AND `年度次數` = %d
+                            AND`測試件序號` = %d;"""%(upload_df.at[q,"測試件項目"],upload_df.at[q,"測試件分項目"],upload_df.at[q,"年份"],upload_df.at[q,"年度次數"],upload_df.at[q,"測試件序號"])
+                cursor.execute(sqlverify)
+            verifycnt = cursor.rowcount
+            if verifycnt != 0:
+                tk.messagebox.showerror(title='南投署立醫院檢驗科',message="已有上傳過重複資料!請勿重複上傳!")
+                return None
+            else: 
+                continue
         tk.messagebox.showinfo(title='南投署立醫院檢驗科', message="""驗證成功!!
 上傳能力試驗項目: %s
 上傳筆數: %d 筆
@@ -251,7 +270,12 @@ class loadbatch_mySQL(object):
         rawdata = upload_df.to_numpy().tolist()
         for i in range(0, len(rawdata)):
             with conn.cursor() as cursor:
-                val = "INSERT INTO `測試件結果`(`年度次數`, `測試件項目編號`, `測試件分項目編號`, `年份`, `測試件序號`, `測試件結果`,`新增人員`) VALUES (%d, %d, %d, %d, %d, %.5f,'%s');" %(rawdata[i][1],rawdata[i][2],rawdata[i][3],rawdata[i][0],rawdata[i][4],rawdata[i][5],account)
+                if isinstance(rawdata[i][5],(int,float)) == True:   #判斷測試件數值是否為整數(int)或浮點數(float)
+                    val = "INSERT INTO `測試件結果`(`年度次數`, `測試件項目編號`, `測試件分項目編號`, `年份`, `測試件序號`, `測試件結果`,`新增人員`) VALUES (%d, %d, %d, %d, %d, %.5f,'%s');" %(rawdata[i][1],rawdata[i][2],rawdata[i][3],rawdata[i][0],rawdata[i][4],rawdata[i][5],account)
+                else:
+                    nonequal = rawdata[i][5][0] #如果不為整數或浮點數時，自動將測試件數值第一位轉變為不等判讀
+                    rawdata[i][5] = float(rawdata[i][5][1:])    #字元後一位為值
+                    val = "INSERT INTO `測試件結果`(`年度次數`, `測試件項目編號`, `測試件分項目編號`, `年份`, `測試件序號`, `測試件結果`,`不等判讀`,`新增人員`) VALUES (%d, %d, %d, %d, %d, %.5f,'%s','%s');" %(rawdata[i][1],rawdata[i][2],rawdata[i][3],rawdata[i][0],rawdata[i][4],rawdata[i][5],nonequal,account)
                 cursor.execute(val)
             conn.commit()
         conn.close()
