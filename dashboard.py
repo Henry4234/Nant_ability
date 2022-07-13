@@ -128,7 +128,7 @@ class dashboard(object):
             width=15,height=40,
             state="readonly"
             )
-        self.input_testname.bind("<<ComboboxSelected>>", self.callback)
+        self.input_testname.bind("<<ComboboxSelected>>", lambda event:(self.callback(event),self.update(event)))
         self.input_testobj = ttk.Combobox(
             master = self.root, 
             # textvariable=self.input_testname.get(),
@@ -193,7 +193,10 @@ class dashboard(object):
         df = cursor.fetchall()
         df = pd.DataFrame(df)
         title = ["結果編號","測試件序號","測試件結果","能力試驗結果","不等判讀"]
-        df.columns=title
+        try:
+            df.columns=title
+        except ValueError:
+            self.clear_data()
         print(df)
         self.clear_data()
         self.tv1["column"] = list(df.columns)
