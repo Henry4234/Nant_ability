@@ -836,7 +836,7 @@ class output_mySQL(object):
             elif x!= 1:
                 hhh="(備機)"
             wb.save("%s年第%d次%s_%s%s.xlsx"%(input_year,input_testnum,self.input_testname.get(),self.input_testobj.get(),hhh))   #xlsx檔案存檔
-            # wb.save("//10.0.35.9/95_report_RAW/能力試驗可容許範圍分析/程式自動暫存/%s年第%d次%s%s.xlsx"%(input_year,input_testnum,self.input_testname.get(),self.input_testobj.get(),hhh))   #xlsx檔案存檔
+            # wb.save("//10.0.35.9/95_report_RAW/能力試驗可容許範圍分析/程式自動暫存/%s年第%d次%s_%s%s.xlsx"%(input_year,input_testnum,self.input_testname.get(),self.input_testobj.get(),hhh))   #xlsx檔案存檔
             ##如果要存到NAS上可以直接用//路徑
             filepath = ".//%s年第%d次%s_%s%s.xlsx"%(input_year,input_testnum,self.input_testname.get(),self.input_testobj.get(),hhh)
             if os.path.isfile(filepath):

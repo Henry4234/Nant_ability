@@ -295,18 +295,18 @@ class output_mySQL(object):
                                     JOIN  `clsi規則`
                                     ON `clsi規則`.`編號` = `測試件分項目`.`預設規則`
                                     WHERE `測試項目_分項` = '%s';"""%(q)
-                with conn.cursor() as cursor:
-                    cursor.execute(srch_presetclsi)
-                prerules = cursor.fetchone()
-                pre = prerules[0]
-                if tk.messagebox.askyesno(title='南投醫院檢驗科',message='%s是否先使用預設可容許範圍:%s?'%(q,pre)):
-                    aa = pre
-                    rules = list(prerules)
-                    rules.insert(0,"")
-                    rules.insert(0,"")
-                    print(rules)
-                else:
-                    return
+                    with conn.cursor() as cursor:
+                        cursor.execute(srch_presetclsi)
+                    prerules = cursor.fetchone()
+                    pre = prerules[0]
+                    if tk.messagebox.askyesno(title='南投醫院檢驗科',message='%s是否先使用預設可容許範圍:%s?'%(q,pre)):
+                        aa = pre
+                        rules = list(prerules)
+                        rules.insert(0,"")
+                        rules.insert(0,"")
+                        print(rules)
+                    else:
+                        return
                 # print(rules[3])
                 if m == 0:  #判斷是否新增一個新的excel檔
                     ws = wb.active
@@ -892,7 +892,7 @@ class output_mySQL(object):
                 elif pending!= 1:
                     hhh="(備機)"
                 wb.save("%s年第%d次%s%s.xlsx"%(input_year,input_testnum,self.input_testname.get(),hhh))   #xlsx檔案存檔
-                # wb.save("//10.0.35.9/95_report_RAW/能力試驗可容許範圍分析/程式自動暫存/%s年第%d次%s%s.xlsx"%(input_year,input_testnum,self.input_testname.get(),self.input_testobj.get(),hhh))   #xlsx檔案存檔
+                # wb.save("//10.0.35.9/95_report_RAW/能力試驗可容許範圍分析/程式自動暫存/%s年第%d次%s_%s%s.xlsx"%(input_year,input_testnum,self.input_testname.get(),self.input_testobj.get(),hhh))   #xlsx檔案存檔
                 filepath=".//%s年第%d次%s%s.xlsx"%(input_year,input_testnum,self.input_testname.get(),hhh)
         if os.path.isfile(filepath):
             tk.messagebox.showinfo(title='南投署立醫院檢驗科', message='檔案新增成功!')
